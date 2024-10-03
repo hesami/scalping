@@ -104,10 +104,9 @@ plotshape(series=shortCondition, title="Sell Signal", location=location.abovebar
 plot(fastEma, title="Quick EMA", color=#03cf62, linewidth=2)
 plot(smoothEma, title="Smooth EMA", color=#ff0450, linewidth=2)
 
-
 // نمایش وضعیت روند فعلی
-// cloudTop = ta.highest(high, 30)
-// cloudBottom = ta.lowest(low, 30)
-// cloudColor = trendCondition == "Bullish" ? color.green : color.red
-// plot(cloudTop, title = "Top Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
-// plot(cloudBottom, title = "Bottom Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
+cloudTop = ta.highest(high, 30)
+cloudBottom = ta.lowest(low, 30)
+cloudColor = trendCondition == "Bullish" ? color.green : color.red
+plot(cloudTop, title = "Top Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
+plot(cloudBottom, title = "Bottom Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
