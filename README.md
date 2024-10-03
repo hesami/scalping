@@ -8,7 +8,7 @@ This release introduces a new and advanced scalping strategy indicator for Pine 
 - ATR-Based Filter: Uses Average True Range to filter out noisy signals and improve trade accuracy.
 - Candle Confirmation: Incorporates a candle confirmation algorithm to ensure that the generated signals are supported by the underlying price action.
 - Customizable Parameters: Offers a wide range of customizable parameters to tailor the indicator to your specific trading style.
-- cloud visualization feature to help identify the overall trend
+- Cloud visualization feature to help identify the overall trend
 
 ### Improvements in this release:
 - Added a new candle confirmation algorithm to enhance signal quality.
