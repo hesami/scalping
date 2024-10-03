@@ -1,118 +1,103 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © Mehdi Hesami (hesami13@yahoo.com)
 
-//@version=5
+//@version=5 
 indicator("Advanced Scalping EMA & RSI Strategy", overlay=true)
 
-// گروه‌بندی تنظیمات EMA سریع‌تر (Quick EMA)
+// Quick EMA Settings
 group_fastEma = "Quick EMA Settings"
-fastEmaSource = input.source(ohlc4, title="Source", group=group_fastEma)
-fastEmaLength = input.int(9, title="Length", group=group_fastEma)
-fastEmaMethod = input.string("VWMA", title="Method", options=["SMA", "EMA", "WMA", "VWMA"], group=group_fastEma)
+fastEmaSource = input.source(ohlc4, title="Source", group=group_fastEma, tooltip="The data source used for calculating the quick EMA. Options include open, high, low, close, and typical price (OHLC4).")
+fastEmaLength = input.int(9, title="Length", group=group_fastEma, tooltip="The number of periods used to calculate the quick EMA. Shorter periods result in a more reactive EMA.")
+fastEmaMethod = input.string("VWMA", title="Method", options=["SMA", "EMA", "WMA", "VWMA"], group=group_fastEma, tooltip="The method used to calculate the moving average. Options include Simple Moving Average (SMA), Exponential Moving Average (EMA), Weighted Moving Average (WMA), and Volume Weighted Moving Average (VWMA).")
 
-// تابع انتخاب متد برای EMA سریع‌تر
 fastEma = switch fastEmaMethod
     "SMA" => ta.sma(fastEmaSource, fastEmaLength)
     "EMA" => ta.ema(fastEmaSource, fastEmaLength)
     "WMA" => ta.wma(fastEmaSource, fastEmaLength)
     "VWMA" => ta.vwma(fastEmaSource, fastEmaLength)
 
-// گروه‌بندی تنظیمات EMA نرم‌تر (Smooth EMA)
+// Smooth EMA Settings
 group_smoothEma = "Smooth EMA Settings"
-smoothEmaSource = input.source(ohlc4, title="Source", group=group_smoothEma)
-smoothEmaLength = input.int(21, title="Length", group=group_smoothEma)
-smoothEmaMethod = input.string("VWMA", title="Method", options=["SMA", "EMA", "WMA", "VWMA"], group=group_smoothEma)
+smoothEmaSource = input.source(ohlc4, title="Source", group=group_smoothEma, tooltip="The data source used for calculating the smooth EMA.")
+smoothEmaLength = input.int(21, title="Length", group=group_smoothEma, tooltip="The number of periods used to calculate the smooth EMA. A longer length smooths out price movements more.")
+smoothEmaMethod = input.string("VWMA", title="Method", options=["SMA", "EMA", "WMA", "VWMA"], group=group_smoothEma, tooltip="The method used to calculate the moving average.")
 
-// تابع انتخاب متد برای EMA نرم‌تر
 smoothEma = switch smoothEmaMethod
     "SMA" => ta.sma(smoothEmaSource, smoothEmaLength)
     "EMA" => ta.ema(smoothEmaSource, smoothEmaLength)
     "WMA" => ta.wma(smoothEmaSource, smoothEmaLength)
     "VWMA" => ta.vwma(smoothEmaSource, smoothEmaLength)
 
-// گروه‌بندی تنظیمات RSI
+// RSI Settings
 group_rsi = "RSI Settings"
-rsiLength = input.int(14, title="RSI Length", group=group_rsi)
-rsiSource = input.source(close, title="RSI Source", group=group_rsi)
-rsiOverbought = input.int(70, title="RSI Overbought Level", group=group_rsi)
-rsiOverboughtBuffer = input.int(60, title="RSI Overbought Buffer Level", group=group_rsi)
-rsiOversold = input.int(30, title="RSI Oversold Level", group=group_rsi)
-rsiOversoldBuffer = input.int(40, title="RSI Oversold Buffer Level", group=group_rsi)
+rsiLength = input.int(14, title="RSI Length", group=group_rsi, tooltip="The number of periods used to calculate the RSI.")
+rsiSource = input.source(close, title="RSI Source", group=group_rsi, tooltip="The price data used for RSI calculation (e.g., close price).")
+rsiOverbought = input.int(70, title="RSI Overbought Level", minval=40, maxval=100, group=group_rsi, tooltip="The level at which the market is considered overbought.")
+rsiOverboughtBuffer = input.int(60, title="RSI Overbought Buffer Level", minval=40, maxval=100, group=group_rsi, tooltip="A buffer level to allow more flexibility in detecting overbought conditions.")
+rsiOversold = input.int(30, title="RSI Oversold Level", minval=0, maxval=50, group=group_rsi, tooltip="The level at which the market is considered oversold.")
+rsiOversoldBuffer = input.int(40, title="RSI Oversold Buffer Level", minval=0, maxval=50, group=group_rsi, tooltip="A buffer level to allow more flexibility in detecting oversold conditions.")
 
-// محاسبه RSI
 rsi = ta.rsi(rsiSource, rsiLength)
 rsiLag = ta.rsi(rsiSource, rsiLength)[2]
 
-// گروه‌بندی تنظیمات ATR
+// Scalping Settings (ATR as a filter)
 group_scalping = "Scalping Settings"
-useAtrFilter = input.bool(true, title="Use ATR Filter for Scalping", group=group_scalping)
-atrLength = input.int(14, title="ATR Length", group=group_scalping)
-atrMultiplier = input.float(0.35, title="ATR Multiplier", group=group_scalping)
-atrAdaptive = input.bool(true, title="Adaptive ATR Multiplier", group=group_scalping)
+useAtrFilter = input.bool(true, title="Use ATR Filter for Scalping", group=group_scalping, tooltip="Enable or disable the ATR filter for scalping trades.")
+atrLength = input.int(14, title="ATR Length", group=group_scalping, tooltip="The number of periods used to calculate the Average True Range (ATR).")
+atrMultiplier = input.float(0.35, title="ATR Multiplier", group=group_scalping, tooltip="A multiplier applied to the ATR to determine the minimum price movement required for a trade.")
+atrAdaptive = input.bool(true, title="Adaptive ATR Multiplier", group=group_scalping, tooltip="Enable or disable a dynamic ATR multiplier based on the current market volatility.")
 
-// محاسبه ATR
 atr = ta.atr(atrLength)
 multiplier = useAtrFilter and atrAdaptive ? atrMultiplier * (atr / ta.ema(atr, atrLength)) : atrMultiplier
 
-// محاسبه روند (صعودی یا نزولی)
+// Trend Calculation (Bullish or Bearish)
 trendCondition = fastEma > smoothEma ? "Bullish" : "Bearish"
 
-// قوانین ورود Long
+// Entry Conditions
 longCondition = ta.crossover(fastEma, smoothEma) and close > fastEma and (rsi < rsiOversold or rsiLag < rsiOversoldBuffer)
-
-// قوانین ورود Short
 shortCondition = ta.crossunder(fastEma, smoothEma) and close < fastEma and (rsi > rsiOverbought or rsiLag > rsiOverboughtBuffer)
 
-// اعمال فیلتر ATR برای معاملات اسکالپی
+// Applying ATR filter for Scalping
 if useAtrFilter
     longCondition := longCondition and close - fastEma > atr * multiplier
     shortCondition := shortCondition and fastEma - close > atr * multiplier
 
-// تنظیمات ADX
-group_adx = "ADX Settings"
-useAdxFilter = input.bool(true, title="Use ADX Filter", group=group_adx)
-adxLength = input.int(14, title="ADX Length", group=group_adx)
-adxThreshold = input.float(25, title="ADX Threshold", group=group_adx)
-
-// محاسبه DI+ و DI-
-plusDI = ta.rma(math.max(high - high[1], 0), adxLength)
-minusDI = ta.rma(math.max(low[1] - low, 0), adxLength)
-sumDI = plusDI + minusDI
-dx = sumDI != 0 ? 100 * math.abs(plusDI - minusDI) / sumDI : 0
-
-// محاسبه ADX
-adxValue = ta.rma(dx, adxLength)
-
-// افزودن شرط ADX به سیگنال‌ها
-if useAdxFilter
-    longCondition := longCondition and adxValue > adxThreshold
-    shortCondition := shortCondition and adxValue > adxThreshold
-
-// بخش تایید کندل‌ها
-group_candleConfirmation = "Candle Confirmation"
-checkCandleConfirmation = input.bool(true, title="Candle Stick Confirmation", group=group_candleConfirmation)
+// Candle Confirmation Settings
+checkCandleConfirmation = input.bool(true, title="Candle Stick Confirmation", group="Additional Settings", tooltip="Verify trading signals using candlestick patterns (e.g., BodySize, trend, etc.).")
 avgBodySizelength = 12
 avgBodySize = ta.ema(math.abs(close - open), avgBodySizelength)
 minBodySize = 0.5 * avgBodySize
 
-bullishCandleConfirmation = (close > open) and (close - open > minBodySize)
-bearishCandleConfirmation = (close < open) and (open - close > minBodySize)
+bullishCandleConfirmation = (close > open) and (close - open > minBodySize) or ((close > close[1]) and (close[1] > open[1]) and (close - close[1] > minBodySize)) or ((close < open) and (close > close[2]) and (close[2] > open[2]) and (close - close[2] > minBodySize))
+bearishCandleConfirmation = (close < open) and (open - close > minBodySize) or ((close < close[1]) and (close[1] < open[1]) and (close[1] - close > minBodySize)) or ((close > open) and (close < close[2]) and (close[2] < open[2]) and (close[2] - close > minBodySize))
 
 if checkCandleConfirmation
     longCondition := longCondition and bullishCandleConfirmation
     shortCondition := shortCondition and bearishCandleConfirmation
 
-// نمایش سیگنال Buy
-plotshape(series=longCondition, title="Buy Signal", location=location.belowbar, color=#34ba3f, textcolor=color.white, style=shape.labelup, text="Buy")
+// ADX Settings
+group_adx = "ADX Settings"
+adxLength = input.int(14, title="ADX Length", group=group_adx, tooltip="Length for ADX calculation.")
+adxThreshold = input.float(25, title="ADX Threshold", group=group_adx, tooltip="Threshold for trend strength based on ADX.")
 
-// نمایش سیگنال Sell
+plusDI = ta.rma(math.max(high - high[1], 0), adxLength)
+minusDI = ta.rma(math.max(low[1] - low, 0), adxLength)
+sumDI = plusDI + minusDI
+dx = sumDI != 0 ? 100 * math.abs(plusDI - minusDI) / sumDI : 0
+adxValue = ta.rma(dx, adxLength)
+
+longCondition := longCondition and adxValue > adxThreshold
+shortCondition := shortCondition and adxValue > adxThreshold
+
+// Plot Buy/Sell Signals
+plotshape(series=longCondition, title="Buy Signal", location=location.belowbar, color=#34ba3f, textcolor=color.white, style=shape.labelup, text="Buy")
 plotshape(series=shortCondition, title="Sell Signal", location=location.abovebar, color=#ef3345, textcolor=color.white, style=shape.labeldown, text="Sell")
 
-// نمایش EMAها
+// Plot EMAs
 plot(fastEma, title="Quick EMA", color=#03cf62, linewidth=2)
 plot(smoothEma, title="Smooth EMA", color=#ff0450, linewidth=2)
 
-// نمایش وضعیت روند فعلی
+// Trend Cloud Display
 cloudTop = ta.highest(high, 30)
 cloudBottom = ta.lowest(low, 30)
 cloudColor = trendCondition == "Bullish" ? color.green : color.red
