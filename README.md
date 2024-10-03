@@ -1,6 +1,8 @@
 ### Scalping Signals Indicator
 This release introduces a new and advanced scalping strategy indicator for Pine Script. The indicator combines multiple technical indicators, including EMA, RSI, and ATR, to provide robust buy and sell signals.
 
+![image](https://github.com/user-attachments/assets/ea36fbdb-93c3-42fa-a9b5-18724754dc48)
+
 ### Key Features:
 
 - Dual EMA Crossover: Uses a faster and slower EMA to identify potential trend changes.
