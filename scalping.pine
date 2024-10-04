@@ -109,8 +109,9 @@ if checkCandleConfirmation
     longCondition := longCondition and bullishCandleConfirmation
     shortCondition := shortCondition and bearishCandleConfirmation
 
+
 // تنظیمات برای فعال/غیرفعال کردن شرط قدرت نزولی
-enableBearishStrengthCondition = input.bool(true, title="Bearish Strength Condition", tooltip="Toggle the bearish strength condition on/off for signal confirmation.", group="Trend Strength Settings")
+enableBearishStrengthCondition = input.bool(true, title="Check Bearish Strength Condition", tooltip="Toggle the bearish strength condition on/off for signal confirmation.", group="Trend Strength Settings")
 
 // تنظیمات برای قدرت نزولی
 bearishStrengthThreshold = input.float(0.5, title="Bearish Strength Threshold", tooltip="The threshold for bearish strength, to avoid signals when the bearish momentum is too strong.", group="Trend Strength Settings")
@@ -123,7 +124,7 @@ shortCondition := shortCondition and (not enableBearishStrengthCondition or bear
 
 
 // تنظیمات برای فعال/غیرفعال کردن شرط قدرت صعودی
-enableBullishStrengthCondition = input.bool(true, title="Bullish Strength Condition", tooltip="Toggle the bullish strength condition on/off for signal confirmation.", group="Trend Strength Settings")
+enableBullishStrengthCondition = input.bool(true, title="Check Bullish Strength Condition", tooltip="Toggle the bullish strength condition on/off for signal confirmation.", group="Trend Strength Settings")
 
 // تنظیمات برای قدرت صعودی
 bullishStrengthThreshold = input.float(0.5, title="Bullish Strength Threshold", tooltip="The threshold for bullish strength, to avoid signals when the bullish momentum is too strong.", group="Trend Strength Settings")
@@ -133,6 +134,7 @@ bullishStrength = math.sum(close - open > 0 ? math.abs(close - open) : 0, 5) / m
 
 // افزودن شرط قدرت صعودی به سیگنال خرید با توجه به فعال/غیرفعال بودن شرط
 longCondition := longCondition and (not enableBullishStrengthCondition or bullishStrength > bullishStrengthThreshold)
+
 
 // تنظیمات برای فعال/غیرفعال کردن شرط اصلاح قیمت
 enableRetracementCondition = input.bool(true, title="Retracement Condition", tooltip="Toggle the retracement condition on/off for signal confirmation.", group="Retracement Settings")
@@ -153,8 +155,9 @@ longCondition := longCondition and (not enableRetracementCondition or isRetracin
 // افزودن شرط اصلاح قیمت به سیگنال فروش با توجه به فعال/غیرفعال بودن شرط
 shortCondition := shortCondition and (not enableRetracementCondition or not isRetracing)
 
+
 // تنظیمات برای فعال/غیرفعال کردن بررسی تعداد کندل‌های نزولی پی‌درپی
-enableBearishCandleCount = input.bool(true, title="Consecutive Bearish Candle Count", tooltip="Toggle the consecutive bearish candle count condition on/off.", group="Consecutive Settings")
+enableBearishCandleCount = input.bool(true, title="Check Consecutive Bearish Candle Count", tooltip="Toggle the consecutive bearish candle count condition on/off.", group="Consecutive Settings")
 
 // تنظیمات تعداد کندل‌های نزولی مجاز
 maxBearishCandles = input.int(3, title="Max Consecutive Bearish Candles", tooltip="The maximum number of consecutive bearish candles before filtering the signal.", group="Consecutive Settings")
@@ -172,7 +175,7 @@ shortCondition := shortCondition and (not enableBearishCandleCount or consecutiv
 
 
 // تنظیمات برای فعال/غیرفعال کردن بررسی تعداد کندل‌های صعودی پی‌درپی
-enableBullishCandleCount = input.bool(true, title="Consecutive Bullish Candle Count", tooltip="Toggle the consecutive bullish candle count condition on/off.", group="Consecutive Settings")
+enableBullishCandleCount = input.bool(true, title="Check Consecutive Bullish Candle Count", tooltip="Toggle the consecutive bullish candle count condition on/off.", group="Consecutive Settings")
 
 // تنظیمات تعداد کندل‌های صعودی مجاز
 maxBullishCandles = input.int(3, title="Max Consecutive Bullish Candles", tooltip="The maximum number of consecutive bullish candles before filtering the signal.", group="Consecutive Settings")
@@ -198,10 +201,67 @@ plotshape(series=shortCondition, title="Sell Signal", location=location.abovebar
 plot(fastEma, title="Quick EMA", color=#03cf62, linewidth=2)
 plot(smoothEma, title="Smooth EMA", color=#ff0450, linewidth=2)
 
-// Trend Cloud Display
-cloudTop = ta.highest(high, 30)
-cloudBottom = ta.lowest(low, 30)
-cloudColor = trendCondition == "Bullish" ? color.green : color.red
-plot(cloudTop, title = "Top Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
-plot(cloudBottom, title = "Bottom Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
+// --- تنظیمات و محاسبات مربوط به تشخیص روند کلی بازار ---
+// تنظیمات EMA برای روند کلی بازار
+groupTrendSettings = "Market Trend Direction And Strength" // گروه تنظیمات
+trendFastEMA = input.int(150, title="Trend Fast EMA", group=groupTrendSettings, tooltip="Fast EMA used for detecting the overall market trend.")
+trendMediumEMA = input.int(200, title="Trend Medium EMA", group=groupTrendSettings, tooltip="Medium EMA used for detecting the overall market trend.")
+trendSlowEMA = input.int(250, title="Trend Slow EMA", group=groupTrendSettings, tooltip="Slow EMA used for detecting the overall market trend.")
 
+// تنظیمات ADX برای تشخیص قدرت روند
+trendAdxLength = input.int(14, title="Trend ADX Length", group=groupTrendSettings, tooltip="Length of ADX used to measure the strength of the market trend.")
+
+// محاسبه EMA‌ها برای روند کلی بازار
+trendEmaFast = ta.ema(close, trendFastEMA)
+trendEmaMedium = ta.ema(close, trendMediumEMA)
+trendEmaSlow = ta.ema(close, trendSlowEMA)
+
+// محاسبه DM+ و DM- برای DX
+dmPlus = ta.change(high) > ta.change(low) ? math.max(ta.change(high), 0) : 0
+dmMinus = ta.change(low) > ta.change(high) ? math.max(ta.change(low), 0) : 0
+// محاسبه True Range (TR)
+tr1 = high - low
+tr2 = math.abs(high - close[1])
+tr3 = math.abs(low - close[1])
+tr = math.max(math.max(tr1, tr2), tr3)
+
+// محاسبه DI+ و DI-
+diPlus = 100 * ta.sma(dmPlus / tr, trendAdxLength)
+diMinus = 100 * ta.sma(dmMinus / tr, trendAdxLength)
+
+// محاسبه DX
+trendDx = math.abs(diPlus - diMinus) / (diPlus + diMinus) * 100
+trendAdx = ta.sma(trendDx, trendAdxLength)
+
+// رسم خطوط EMA برای روند کلی بازار
+plotTrendFast = plot(trendEmaFast, title = "Trend Fast EMA", color=#009b5d, linewidth=2)
+plotTrendMedium = plot(trendEmaMedium, title = "Trend Medium EMA", color=#ffffffe2, linewidth=1)
+plotTrendSlow = plot(trendEmaSlow, title = "Trend Slow EMA", color=#a10043, linewidth=2)
+
+// تعیین وضعیت روند (صعودی یا نزولی)
+trendUp = trendEmaFast > trendEmaSlow
+trendDown = trendEmaFast < trendEmaSlow
+
+// تابع تعیین شدت رنگ براساس ADX و روند کلی بازار
+getColorForTrend(up, adxValue) =>
+    if up
+        if adxValue > 30
+            #003923 // سبز پررنگ
+        else if adxValue > 20
+            #00903a // سبز معمولی
+        else
+            #7cffa5d6 // سبز کم‌رنگ
+    else
+        if adxValue > 30
+            #a00a2dfe // قرمز پررنگ
+        else if adxValue > 20
+            #ff003cd3 // قرمز معمولی
+        else
+            #ff5a80f6 // قرمز کم‌رنگ
+            
+
+// رنگ ابر براساس ADX و روند کلی بازار
+trendCloudColor = trendUp ? getColorForTrend(true, trendAdx) : trendDown ? getColorForTrend(false, trendAdx) : na
+
+// پر کردن ناحیه بین EMA سریع و آهسته برای نمایش روند کلی بازار
+fill(plotTrendFast, plotTrendSlow, color=trendCloudColor, title="Trend Background with ADX Strength")
