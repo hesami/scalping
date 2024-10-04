@@ -45,10 +45,10 @@ rsiLag = ta.rsi(rsiSource, rsiLength)[2]
 
 // گروه‌بندی تنظیمات ATR
 group_scalping = "Scalping Settings"
-useAtrFilter = input.bool(true, title="Use ATR Filter for Scalping", group=group_scalping, tooltip="Enable or disable the ATR filter for scalping trades.")
+useAtrFilter = input.bool(false, title="Use ATR Filter for Scalping", group=group_scalping, tooltip="Enable or disable the ATR filter for scalping trades.")
 atrLength = input.int(14, title="ATR Length", group=group_scalping, tooltip="The number of periods used for the ATR calculation.")
 atrMultiplier = input.float(0.35, title="ATR Multiplier", group=group_scalping, tooltip="The multiplier applied to the ATR for filtering scalping trades.")
-atrAdaptive = input.bool(true, title="Adaptive ATR Multiplier", group=group_scalping, tooltip="Enable dynamic ATR multiplier based on market conditions.")
+atrAdaptive = input.bool(false, title="Adaptive ATR Multiplier", group=group_scalping, tooltip="Enable dynamic ATR multiplier based on market conditions.")
 
 // محاسبه ATR
 atr = ta.atr(atrLength)
@@ -70,7 +70,7 @@ if useAtrFilter
 
 // تنظیمات ADX
 group_adx = "ADX Settings"
-useAdxFilter = input.bool(true, title="Use ADX Filter", group=group_adx, tooltip="Enable or disable the ADX filter for trade entries.")
+useAdxFilter = input.bool(false, title="Use ADX Filter", group=group_adx, tooltip="Enable or disable the ADX filter for trade entries.")
 adxLength = input.int(14, title="ADX Length", group=group_adx, tooltip="The number of periods used for the ADX calculation.")
 adxThreshold = input.float(25, title="ADX Threshold", group=group_adx, tooltip="The ADX threshold for identifying strong trends.")
 
@@ -90,11 +90,11 @@ if useAdxFilter
 
 // Candle Confirmation Section
 group_candleConfirmation = "Candle Confirmation"
-checkCandleConfirmation = input.bool(true, title="Candle Stick Confirmation", group=group_candleConfirmation, tooltip="Enable or disable candle confirmation for buy and sell signals.")
+checkCandleConfirmation = input.bool(false, title="Exclude Outliers Candlesticks", group=group_candleConfirmation, tooltip="This feature excludes candlesticks that are identified as statistical outliers, meaning they deviate significantly from the normal price distribution. By removing these outliers, you can improve the reliability of technical analysis and reduce the impact of noise on your trading decisions.")
 
 // Dynamic settings for average body size length and multiplier
-avgBodySizelength = input.int(12, minval=1, title="Average Body Size Length", group=group_candleConfirmation, tooltip="Sets the length for the EMA calculation of the average candle body size.")
-bodySizeMultiplier = input.float(0.5, minval=0.1, title="Body Size Multiplier", group=group_candleConfirmation, tooltip="Multiplier for determining the minimum body size of the candle. Higher values require larger candles for confirmation.")
+avgBodySizelength = input.int(5, minval=1, title="Before Length", group=group_candleConfirmation, tooltip="Sets the length for the EMA calculation of the average candle body size.")
+bodySizeMultiplier = input.float(0.5, minval=0.1, title="Minimum Body Size", group=group_candleConfirmation, tooltip="Multiplier for determining the minimum body size of the candle. Higher values require larger candles for confirmation.")
 
 avgBodySize = ta.ema(math.abs(close - open), avgBodySizelength)
 minBodySize = bodySizeMultiplier * avgBodySize
@@ -111,7 +111,7 @@ if checkCandleConfirmation
 
 
 // تنظیمات برای فعال/غیرفعال کردن شرط قدرت نزولی
-enableBearishStrengthCondition = input.bool(true, title="Check Bearish Strength Condition", tooltip="Toggle the bearish strength condition on/off for signal confirmation.", group="Trend Strength Settings")
+enableBearishStrengthCondition = input.bool(false, title="Exclude Strong Downtrends Signals", tooltip="This strategy involves avoiding investments in assets that are experiencing a significant and sustained price decline. It is based on the premise that it is generally more prudent to wait for a market to stabilize or reverse its downward trend before considering new purchases.", group="Trend Strength Settings")
 
 // تنظیمات برای قدرت نزولی
 bearishStrengthThreshold = input.float(0.5, title="Bearish Strength Threshold", tooltip="The threshold for bearish strength, to avoid signals when the bearish momentum is too strong.", group="Trend Strength Settings")
@@ -124,7 +124,7 @@ shortCondition := shortCondition and (not enableBearishStrengthCondition or bear
 
 
 // تنظیمات برای فعال/غیرفعال کردن شرط قدرت صعودی
-enableBullishStrengthCondition = input.bool(true, title="Check Bullish Strength Condition", tooltip="Toggle the bullish strength condition on/off for signal confirmation.", group="Trend Strength Settings")
+enableBullishStrengthCondition = input.bool(false, title="Exclude Strong Uptrends Signals", tooltip="This strategy involves avoiding investments in assets that are experiencing a significant and sustained price increase. It is often based on the belief that markets that have risen rapidly may be due for a correction and that it is better to wait for a more favorable entry point.", group="Trend Strength Settings")
 
 // تنظیمات برای قدرت صعودی
 bullishStrengthThreshold = input.float(0.5, title="Bullish Strength Threshold", tooltip="The threshold for bullish strength, to avoid signals when the bullish momentum is too strong.", group="Trend Strength Settings")
@@ -137,7 +137,7 @@ longCondition := longCondition and (not enableBullishStrengthCondition or bullis
 
 
 // تنظیمات برای فعال/غیرفعال کردن شرط اصلاح قیمت
-enableRetracementCondition = input.bool(true, title="Retracement Condition", tooltip="Toggle the retracement condition on/off for signal confirmation.", group="Retracement Settings")
+enableRetracementCondition = input.bool(false, title="Retracement Condition", tooltip="Toggle the retracement condition on/off for signal confirmation.", group="Retracement Settings")
 
 // تنظیمات تعداد کندل‌های اخیر برای شناسایی اصلاح قیمت
 retracementPeriod = input.int(20, title="Retracement Period", tooltip="Number of candles to look back for retracement.", group="Retracement Settings")
@@ -157,49 +157,52 @@ shortCondition := shortCondition and (not enableRetracementCondition or not isRe
 
 
 // تنظیمات برای فعال/غیرفعال کردن بررسی تعداد کندل‌های نزولی پی‌درپی
-enableBearishCandleCount = input.bool(true, title="Check Consecutive Bearish Candle Count", tooltip="Toggle the consecutive bearish candle count condition on/off.", group="Consecutive Settings")
+enableConsecutiveCandleCheck = input.bool(false, title="Exclude Consecutive Bearish & Bullish Candles", tooltip="Toggle the condition for ignoring consecutive bearish and bullish candles on/off.", group="Consecutive Settings")
 
 // تنظیمات تعداد کندل‌های نزولی مجاز
-maxBearishCandles = input.int(3, title="Max Consecutive Bearish Candles", tooltip="The maximum number of consecutive bearish candles before filtering the signal.", group="Consecutive Settings")
+maxConsecutiveCandles = input.int(3, title="Allowed Candles", tooltip="The maximum number of consecutive candles before filtering the signal.", group="Consecutive Settings")
 
-// شمارش کندل‌های نزولی پی‌درپی
+avgConsecutivesBodySizelength = input.int(5, minval=1, title="Before Length", group="Consecutive Settings", tooltip="Sets the length for the EMA calculation of the average candle body size.")
+
+// تنظیمات برای حداقل اندازه بدنه کندل‌ها (بر اساس درصدی از میانگین)
+minCandleBodyPct = input.float(0.5, title="Minimum Body Size (% of average)", tooltip="The minimum size of a candle body as a percentage of the average candle body size.", group="Consecutive Settings")
+
+// محاسبه میانگین اندازه بدنه کندل‌ها
+avgCandleBody = ta.ema(math.abs(close - open), avgConsecutivesBodySizelength)
+
+// شمارش کندل‌های نزولی پی‌درپی با توجه به اندازه بدنه کندل‌ها
 consecutiveBearish = 0
-for i = 1 to maxBearishCandles + 1
-    if close[i] < open[i]
+for i = 1 to maxConsecutiveCandles + 1
+    if close[i] < open[i] and math.abs(close[i] - open[i]) > (minCandleBodyPct / 100) * avgCandleBody
         consecutiveBearish := consecutiveBearish + 1
     else
         break
 
-// افزودن شرط به سیگنال فروش با توجه به فعال/غیرفعال بودن شرط
-shortCondition := shortCondition and (not enableBearishCandleCount or consecutiveBearish < maxBearishCandles)
-
-
-// تنظیمات برای فعال/غیرفعال کردن بررسی تعداد کندل‌های صعودی پی‌درپی
-enableBullishCandleCount = input.bool(true, title="Check Consecutive Bullish Candle Count", tooltip="Toggle the consecutive bullish candle count condition on/off.", group="Consecutive Settings")
-
-// تنظیمات تعداد کندل‌های صعودی مجاز
-maxBullishCandles = input.int(3, title="Max Consecutive Bullish Candles", tooltip="The maximum number of consecutive bullish candles before filtering the signal.", group="Consecutive Settings")
-
-// شمارش کندل‌های صعودی پی‌درپی
+// شمارش کندل‌های صعودی پی‌درپی با توجه به اندازه بدنه کندل‌ها
 consecutiveBullish = 0
-for i = 1 to maxBullishCandles + 1
-    if close[i] > open[i]
+for i = 1 to maxConsecutiveCandles + 1
+    if close[i] > open[i] and math.abs(close[i] - open[i]) > (minCandleBodyPct / 100) * avgCandleBody
         consecutiveBullish := consecutiveBullish + 1
     else
         break
 
-// افزودن شرط به سیگنال خرید با توجه به فعال/غیرفعال بودن شرط
-longCondition := longCondition and (not enableBullishCandleCount or consecutiveBullish < maxBullishCandles)
+// منطق شرط‌ها برای سیگنال فروش
+shortCondition := shortCondition and (not enableConsecutiveCandleCheck or consecutiveBearish < maxConsecutiveCandles)
+
+// منطق شرط‌ها برای سیگنال خرید
+longCondition := longCondition and (not enableConsecutiveCandleCheck or consecutiveBullish < maxConsecutiveCandles)
+
 
 // نمایش سیگنال Buy
-plotshape(series=longCondition, title="Buy Signal", location=location.belowbar, color=#34ba3f, textcolor=color.white, style=shape.labelup, text="Buy")
+plotshape(series=longCondition, title="Buy Signal", location=location.belowbar, color=#34ba3f, textcolor=color.white, style=shape.labelup, text="BUY")
 
 // نمایش سیگنال Sell
-plotshape(series=shortCondition, title="Sell Signal", location=location.abovebar, color=#ef3345, textcolor=color.white, style=shape.labeldown, text="Sell")
+plotshape(series=shortCondition, title="Sell Signal", location=location.abovebar, color=#ef3345, textcolor=color.white, style=shape.labeldown, text="SELL")
 
 // نمایش EMAها
 plot(fastEma, title="Quick EMA", color=#03cf62, linewidth=2)
 plot(smoothEma, title="Smooth EMA", color=#ff0450, linewidth=2)
+
 
 // --- تنظیمات و محاسبات مربوط به تشخیص روند کلی بازار ---
 // تنظیمات EMA برای روند کلی بازار
@@ -226,12 +229,12 @@ tr3 = math.abs(low - close[1])
 tr = math.max(math.max(tr1, tr2), tr3)
 
 // محاسبه DI+ و DI-
-diPlus = 100 * ta.sma(dmPlus / tr, trendAdxLength)
-diMinus = 100 * ta.sma(dmMinus / tr, trendAdxLength)
+diPlus = 100 * ta.ema(dmPlus / tr, trendAdxLength)
+diMinus = 100 * ta.ema(dmMinus / tr, trendAdxLength)
 
 // محاسبه DX
 trendDx = math.abs(diPlus - diMinus) / (diPlus + diMinus) * 100
-trendAdx = ta.sma(trendDx, trendAdxLength)
+trendAdx = ta.ema(trendDx, trendAdxLength)
 
 // رسم خطوط EMA برای روند کلی بازار
 plotTrendFast = plot(trendEmaFast, title = "Trend Fast EMA", color=#009b5d, linewidth=2)
