@@ -88,21 +88,26 @@ if useAdxFilter
     longCondition := longCondition and adxValue > adxThreshold
     shortCondition := shortCondition and adxValue > adxThreshold
 
-// بخش تایید کندل‌ها
+// Candle Confirmation Section
 group_candleConfirmation = "Candle Confirmation"
-checkCandleConfirmation = input.bool(true, title="Candle Stick Confirmation", group=group_candleConfirmation, tooltip="Enable or disable candlestick confirmation for trade signals.")
-avgBodySizelength = 12
-avgBodySize = ta.ema(math.abs(close - open), avgBodySizelength)
-minBodySize = 0.5 * avgBodySize
+checkCandleConfirmation = input.bool(true, title="Candle Stick Confirmation", group=group_candleConfirmation, tooltip="Enable or disable candle confirmation for buy and sell signals.")
 
-bullishCandleConfirmation = (close > open) and (close - open > minBodySize)
-bearishCandleConfirmation = (close < open) and (open - close > minBodySize)
+// Dynamic settings for average body size length and multiplier
+avgBodySizelength = input.int(12, minval=1, title="Average Body Size Length", group=group_candleConfirmation, tooltip="Sets the length for the EMA calculation of the average candle body size.")
+bodySizeMultiplier = input.float(0.5, minval=0.1, title="Body Size Multiplier", group=group_candleConfirmation, tooltip="Multiplier for determining the minimum body size of the candle. Higher values require larger candles for confirmation.")
+
+avgBodySize = ta.ema(math.abs(close - open), avgBodySizelength)
+minBodySize = bodySizeMultiplier * avgBodySize
+
+// Candle Confirmation Algorithm for Buy Signal
+bullishCandleConfirmation = (close > open) and (close - open > minBodySize) or ((close > close[1]) and (close[1] > open[1]) and (close - close[1] > minBodySize)) or ((close < open) and (close > close[2]) and (close[2] > open[2]) and (close - close[2] > minBodySize))
+
+// Candle Confirmation Algorithm for Sell Signal
+bearishCandleConfirmation = (close < open) and (open - close > minBodySize) or ((close < close[1]) and (close[1] < open[1]) and (close[1] - close > minBodySize)) or ((close > open) and (close < close[2]) and (close[2] < open[2]) and (close[2] - close > minBodySize))
 
 if checkCandleConfirmation
     longCondition := longCondition and bullishCandleConfirmation
     shortCondition := shortCondition and bearishCandleConfirmation
-
-
 
 // تنظیمات برای فعال/غیرفعال کردن شرط قدرت نزولی
 enableBearishStrengthCondition = input.bool(true, title="Bearish Strength Condition", tooltip="Toggle the bearish strength condition on/off for signal confirmation.", group="Trend Strength Settings")
@@ -129,8 +134,6 @@ bullishStrength = math.sum(close - open > 0 ? math.abs(close - open) : 0, 5) / m
 // افزودن شرط قدرت صعودی به سیگنال خرید با توجه به فعال/غیرفعال بودن شرط
 longCondition := longCondition and (not enableBullishStrengthCondition or bullishStrength > bullishStrengthThreshold)
 
-
-
 // تنظیمات برای فعال/غیرفعال کردن شرط اصلاح قیمت
 enableRetracementCondition = input.bool(true, title="Retracement Condition", tooltip="Toggle the retracement condition on/off for signal confirmation.", group="Retracement Settings")
 
@@ -149,8 +152,6 @@ longCondition := longCondition and (not enableRetracementCondition or isRetracin
 
 // افزودن شرط اصلاح قیمت به سیگنال فروش با توجه به فعال/غیرفعال بودن شرط
 shortCondition := shortCondition and (not enableRetracementCondition or not isRetracing)
-
-
 
 // تنظیمات برای فعال/غیرفعال کردن بررسی تعداد کندل‌های نزولی پی‌درپی
 enableBearishCandleCount = input.bool(true, title="Consecutive Bearish Candle Count", tooltip="Toggle the consecutive bearish candle count condition on/off.", group="Consecutive Settings")
@@ -187,8 +188,6 @@ for i = 1 to maxBullishCandles + 1
 // افزودن شرط به سیگنال خرید با توجه به فعال/غیرفعال بودن شرط
 longCondition := longCondition and (not enableBullishCandleCount or consecutiveBullish < maxBullishCandles)
 
-
-
 // نمایش سیگنال Buy
 plotshape(series=longCondition, title="Buy Signal", location=location.belowbar, color=#34ba3f, textcolor=color.white, style=shape.labelup, text="Buy")
 
@@ -205,3 +204,4 @@ cloudBottom = ta.lowest(low, 30)
 cloudColor = trendCondition == "Bullish" ? color.green : color.red
 plot(cloudTop, title = "Top Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
 plot(cloudBottom, title = "Bottom Trend", color=cloudColor, linewidth = 2, style=plot.style_linebr)
+
