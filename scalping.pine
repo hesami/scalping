@@ -63,6 +63,9 @@ longCondition = ta.crossover(fastEma, smoothEma) and close > fastEma and (rsi < 
 // قوانین ورود Short
 shortCondition = ta.crossunder(fastEma, smoothEma) and close < fastEma and (rsi > rsiOverbought or rsiLag > rsiOverboughtBuffer)
 
+
+
+
 // اعمال فیلتر ATR برای معاملات اسکالپی
 if useAtrFilter
     longCondition := longCondition and close - fastEma > atr * multiplier
@@ -88,26 +91,85 @@ if useAdxFilter
     longCondition := longCondition and adxValue > adxThreshold
     shortCondition := shortCondition and adxValue > adxThreshold
 
-// Candle Confirmation Section
-group_candleConfirmation = "Candle Confirmation"
-checkCandleConfirmation = input.bool(false, title="Exclude Outliers Candlesticks", group=group_candleConfirmation, tooltip="This feature excludes candlesticks that are identified as statistical outliers, meaning they deviate significantly from the normal price distribution. By removing these outliers, you can improve the reliability of technical analysis and reduce the impact of noise on your trading decisions.")
 
-// Dynamic settings for average body size length and multiplier
-avgBodySizelength = input.int(5, minval=1, title="Before Length", group=group_candleConfirmation, tooltip="Sets the length for the EMA calculation of the average candle body size.")
-bodySizeMultiplier = input.float(0.5, minval=0.1, title="Minimum Body Size", group=group_candleConfirmation, tooltip="Multiplier for determining the minimum body size of the candle. Higher values require larger candles for confirmation.")
 
-avgBodySize = ta.ema(math.abs(close - open), avgBodySizelength)
-minBodySize = bodySizeMultiplier * avgBodySize
 
-// Candle Confirmation Algorithm for Buy Signal
-bullishCandleConfirmation = (close > open) and (close - open > minBodySize) or ((close > close[1]) and (close[1] > open[1]) and (close - close[1] > minBodySize)) or ((close < open) and (close > close[2]) and (close[2] > open[2]) and (close - close[2] > minBodySize))
 
-// Candle Confirmation Algorithm for Sell Signal
-bearishCandleConfirmation = (close < open) and (open - close > minBodySize) or ((close < close[1]) and (close[1] < open[1]) and (close[1] - close > minBodySize)) or ((close > open) and (close < close[2]) and (close[2] < open[2]) and (close[2] - close > minBodySize))
 
-if checkCandleConfirmation
-    longCondition := longCondition and bullishCandleConfirmation
-    shortCondition := shortCondition and bearishCandleConfirmation
+
+// Grouping for Candlestick Patterns Confirmation (Bullish)
+group_patternConfirmationBullish = "Candlestick Patterns Confirmation (Bullish)"
+// Grouping for Candlestick Patterns Confirmation (Bearish)
+group_patternConfirmationBearish = "Candlestick Patterns Confirmation (Bearish)"
+
+// Individual pattern activations for Bullish signals
+useCustomBullishPattern = input.bool(true, title="Use Custom Bullish Candle Pattern", group=group_patternConfirmationBullish, tooltip="Enable or disable the recognition of custom bullish candle patterns.")
+useHammer = input.bool(false, title="Use Hammer Pattern", group=group_patternConfirmationBullish, tooltip="Enable or disable the recognition of bullish hammer patterns.")
+useBullishEngulfing = input.bool(false, title="Use Bullish Engulfing Pattern", group=group_patternConfirmationBullish, tooltip="Enable or disable the recognition of bullish engulfing patterns.")
+useMorningStar = input.bool(false, title="Use Morning Star Pattern", group=group_patternConfirmationBullish, tooltip="Enable or disable the recognition of bullish morning star patterns.")
+
+// Individual pattern activations for Bearish signals
+useCustomBearishPattern = input.bool(true, title="Use Custom Bearish Candle Pattern", group=group_patternConfirmationBearish, tooltip="Enable or disable the recognition of custom bearish candle patterns.")
+useShootingStar = input.bool(false, title="Use Shooting Star Pattern", group=group_patternConfirmationBearish, tooltip="Enable or disable the recognition of bearish shooting star patterns.")
+useBearishEngulfing = input.bool(false, title="Use Bearish Engulfing Pattern", group=group_patternConfirmationBearish, tooltip="Enable or disable the recognition of bearish engulfing patterns.")
+useEveningStar = input.bool(false, title="Use Evening Star Pattern", group=group_patternConfirmationBearish, tooltip="Enable or disable the recognition of bearish evening star patterns.")
+
+// Custom Bullish Pattern Logic
+isCustomBullishPattern = useCustomBullishPattern and (close > open) and ((high - close) < 2 * (close - open)) and ((open - low) > 2 * (close - open))
+
+// Custom Bearish Pattern Logic
+isCustomBearishPattern = useCustomBearishPattern and (close < open) and ((open - low) < 2 * (open - close)) and ((high - open) > 2 * (open - close))
+
+// Candlestick Patterns Recognition for Bullish signals
+isHammer = useHammer and (close > open) and ((high - close) < 2 * (close - open)) and ((open - low) > 2 * (close - open))
+isBullishEngulfing = useBullishEngulfing and (close > open) and (close > high[1]) and (open < low[1])
+isMorningStar = useMorningStar and (open[2] > close[2]) and (math.abs(open[1] - close[1]) < (high[1] - low[1]) * 0.3) and (close > open)
+
+// Candlestick Patterns Recognition for Bearish signals
+isShootingStar = useShootingStar and (open > close) and ((open - low) < 2 * (open - close)) and ((high - open) > 2 * (open - close))
+isBearishEngulfing = useBearishEngulfing and (close < open) and (close < low[1]) and (open > high[1])
+isEveningStar = useEveningStar and (close[2] > open[2]) and (math.abs(open[1] - close[1]) < (high[1] - low[1]) * 0.3) and (close < open)
+
+// Check which bullish patterns are active and confirmed
+bullishPatternConfirmed = false
+bearishPatternConfirmed = false
+
+candlesToCheck = 3
+
+// Bullish Patterns Confirmation
+for i = 0 to candlesToCheck - 1
+    if (useHammer and isHammer[i]) or 
+       (useBullishEngulfing and isBullishEngulfing[i]) or 
+       (useMorningStar and isMorningStar[i]) or 
+       (useCustomBullishPattern and isCustomBullishPattern[i])
+        bullishPatternConfirmed := true
+
+// Bearish Patterns Confirmation
+for i = 0 to candlesToCheck - 1
+    if (useShootingStar and isShootingStar[i]) or 
+       (useBearishEngulfing and isBearishEngulfing[i]) or 
+       (useEveningStar and isEveningStar[i]) or 
+       (useCustomBearishPattern and isCustomBearishPattern[i])
+        bearishPatternConfirmed := true
+
+// Default behavior: If no patterns are enabled, skip confirmation
+bullishCandleConfirmation = (useHammer or useBullishEngulfing or useMorningStar or useCustomBullishPattern) ? bullishPatternConfirmed : true
+bearishCandleConfirmation = (useShootingStar or useBearishEngulfing or useEveningStar or useCustomBearishPattern) ? bearishPatternConfirmed : true
+
+// Combine pattern confirmation with existing conditions for buy/sell signals
+longCondition := longCondition and bullishCandleConfirmation
+shortCondition := shortCondition and bearishCandleConfirmation
+
+
+
+
+
+
+
+
+
+
+
 
 
 // تنظیمات برای فعال/غیرفعال کردن شرط قدرت نزولی
@@ -136,6 +198,10 @@ bullishStrength = math.sum(close - open > 0 ? math.abs(close - open) : 0, 5) / m
 longCondition := longCondition and (not enableBullishStrengthCondition or bullishStrength > bullishStrengthThreshold)
 
 
+
+
+
+
 // تنظیمات برای فعال/غیرفعال کردن شرط اصلاح قیمت
 enableRetracementCondition = input.bool(false, title="Retracement Condition", tooltip="Toggle the retracement condition on/off for signal confirmation.", group="Retracement Settings")
 
@@ -154,6 +220,14 @@ longCondition := longCondition and (not enableRetracementCondition or isRetracin
 
 // افزودن شرط اصلاح قیمت به سیگنال فروش با توجه به فعال/غیرفعال بودن شرط
 shortCondition := shortCondition and (not enableRetracementCondition or not isRetracing)
+
+
+
+
+
+
+
+
 
 
 // تنظیمات برای فعال/غیرفعال کردن بررسی تعداد کندل‌های نزولی پی‌درپی
@@ -193,6 +267,8 @@ shortCondition := shortCondition and (not enableConsecutiveCandleCheck or consec
 longCondition := longCondition and (not enableConsecutiveCandleCheck or consecutiveBullish < maxConsecutiveCandles)
 
 
+
+
 // نمایش سیگنال Buy
 plotshape(series=longCondition, title="Buy Signal", location=location.belowbar, color=#34ba3f, textcolor=color.white, style=shape.labelup, text="BUY")
 
@@ -202,6 +278,9 @@ plotshape(series=shortCondition, title="Sell Signal", location=location.abovebar
 // نمایش EMAها
 plot(fastEma, title="Quick EMA", color=#03cf62, linewidth=2)
 plot(smoothEma, title="Smooth EMA", color=#ff0450, linewidth=2)
+
+
+
 
 
 // --- تنظیمات و محاسبات مربوط به تشخیص روند کلی بازار ---
